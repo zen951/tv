@@ -55,7 +55,7 @@ export const registrationServices = [
   EmeraldIptvService,
   UspehService,
   RuTvService,
-].filter((service) => !service.meta.disabled); // Filter out disabled services
+];
 
 // Looks up a provider by its meta.id. Returns null if not found.
 export function getProvider(id) {
