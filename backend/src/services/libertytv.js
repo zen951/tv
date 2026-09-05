@@ -48,8 +48,14 @@ const TRIAL_REGION = "32"; // Arabic Package
 async function register(jar, { name, email, password }, log) {
   const { text: regPage } = await get(REGISTER_URL, jar);
   const csrf = extractInputValue(regPage, "csrf");
-  if (!csrf)
-    throw new Error(`[${TAG}] Could not extract CSRF from register.php.`);
+  if (!csrf) {
+    // Log a snippet of the page to diagnose what we received
+    const snippet = regPage.slice(0, 500).replace(/\s+/g, " ");
+    log(`[${TAG}] CSRF extraction failed. Page snippet: ${snippet}`, "error");
+    throw new Error(
+      `[${TAG}] Could not extract CSRF from register.php. Page may be blocked or changed.`,
+    );
+  }
 
   log(`[${TAG}] Submitting registration for ${email}…`);
   const { finalUrl, text } = await post(
