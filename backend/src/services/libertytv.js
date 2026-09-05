@@ -40,6 +40,9 @@ const TAG = "LibertyTV";
 const TRIAL_HOURS = 24;
 const TRIAL_REGION = "32"; // Arabic Package
 
+// Proxy configuration (optional - set via environment variable)
+const PROXY_URL = process.env.PROXY_URL || null; // e.g., "http://user:pass@proxy-host:port"
+
 // ── Steps ─────────────────────────────────────────────────────────────────────
 
 // GETs the registration page, then POSTs the form.
@@ -184,6 +187,8 @@ export default {
     id: "libertytv",
     name: "LibertyTV (Gmails)",
     description: "24 Hours",
+    // Disable on Vercel if blocked
+    disabled: process.env.DISABLE_LIBERTYTV === "true",
   },
 
   async execute({
