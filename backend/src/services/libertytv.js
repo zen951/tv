@@ -40,23 +40,47 @@ const TAG = "LibertyTV";
 const TRIAL_HOURS = 24;
 const TRIAL_REGION = "32"; // Arabic Package
 
-// Proxy configuration (optional - set via environment variable)
-const PROXY_URL = process.env.PROXY_URL || null; // e.g., "http://user:pass@proxy-host:port"
-
 // ── Steps ─────────────────────────────────────────────────────────────────────
 
 // GETs the registration page, then POSTs the form.
 // Returns the verification status and any CSRF/email values the server embedded
 // in the redirect landing — avoids an extra GET that could reset the session.
 async function register(jar, { name, email, password }, log) {
-  const { text: regPage } = await get(REGISTER_URL, jar);
+  const { text: regPage, status } = await get(REGISTER_URL, jar);
+
+  // Log response status for debugging
+  log(`[${TAG}] Register page response status: ${status}`);
+
+  // Check if we got blocked or redirected
+  if (status !== 200) {
+    log(`[${TAG}] Non-200 status from register page: ${status}`, "warn");
+  }
+
+  // Check for common blocking patterns
+  if (
+    regPage.includes("cloudflare") ||
+    regPage.includes("cf-browser-verification")
+  ) {
+    throw new Error(
+      `[${TAG}] Site appears to be using Cloudflare bot protection.`,
+    );
+  }
+
+  if (
+    regPage.includes("captcha") ||
+    regPage.includes("hcaptcha") ||
+    regPage.includes("recaptcha")
+  ) {
+    throw new Error(`[${TAG}] Site requires CAPTCHA verification.`);
+  }
+
   const csrf = extractInputValue(regPage, "csrf");
   if (!csrf) {
-    // Log a snippet of the page to diagnose what we received
-    const snippet = regPage.slice(0, 500).replace(/\s+/g, " ");
-    log(`[${TAG}] CSRF extraction failed. Page snippet: ${snippet}`, "error");
+    // Log a snippet of the page to help debug
+    const snippet = regPage.slice(0, 500);
+    log(`[${TAG}] Page snippet: ${snippet}`, "warn");
     throw new Error(
-      `[${TAG}] Could not extract CSRF from register.php. Page may be blocked or changed.`,
+      `[${TAG}] Could not extract CSRF from register.php. Site may have changed or is blocking requests.`,
     );
   }
 
@@ -187,8 +211,6 @@ export default {
     id: "libertytv",
     name: "LibertyTV (Gmails)",
     description: "24 Hours",
-    // Disable on Vercel if blocked
-    disabled: process.env.DISABLE_LIBERTYTV === "true",
   },
 
   async execute({
